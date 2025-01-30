@@ -49,6 +49,29 @@ public class MayhemScript : MonoBehaviour
         new Color32(80, 120, 250, 255)
     };
 
+    private static readonly Color32[] _hexReds = new Color32[19]
+    {
+        new Color32(230, 30, 00, 255),
+        new Color32(230, 20, 00, 255),
+        new Color32(230, 10, 00, 255),
+        new Color32(230, 35, 20, 255),
+        new Color32(230, 25, 20, 255),
+        new Color32(230, 15, 20, 255),
+        new Color32(230, 05, 20, 255),
+        new Color32(230, 40, 40, 255),
+        new Color32(230, 30, 40, 255),
+        new Color32(230, 20, 40, 255),
+        new Color32(230, 10, 40, 255),
+        new Color32(230, 00, 40, 255),
+        new Color32(230, 35, 60, 255),
+        new Color32(230, 25, 60, 255),
+        new Color32(230, 15, 60, 255),
+        new Color32(230, 05, 60, 255),
+        new Color32(230, 30, 80, 255),
+        new Color32(230, 20, 80, 255),
+        new Color32(230, 10, 80, 255)
+    };
+
     private int _moduleId;
     private static int _moduleIdCounter = 1;
     private bool _moduleSolved;
@@ -146,8 +169,8 @@ public class MayhemScript : MonoBehaviour
                 HexBacks[ix].GetComponent<MeshRenderer>().material.color = new Color32(230, 50, 230, 255);
                 break;
             case HexColor.Red:
-                HexFronts[ix].GetComponent<MeshRenderer>().material.color = new Color32(230, 50, 50, 255);
-                HexBacks[ix].GetComponent<MeshRenderer>().material.color = new Color32(230, 50, 50, 255);
+                HexFronts[ix].GetComponent<MeshRenderer>().material.color = _hexReds[ix];
+                HexBacks[ix].GetComponent<MeshRenderer>().material.color = _hexReds[ix];
                 break;
             case HexColor.Black:
                 HexFronts[ix].GetComponent<MeshRenderer>().material.color = new Color32(70, 70, 80, 255);
