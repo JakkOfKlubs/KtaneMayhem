@@ -49,10 +49,19 @@ public class MayhemScript : MonoBehaviour
         new Color32(80, 120, 250, 255)
     };
 
+    private int _moduleId;
     private static int _moduleIdCounter = 1;
-    private int _moduleId, _startingHex, _currentCorrectHex = 99, _highlightedHex = 99;
+    private bool _moduleSolved;
+
+    private int _startingHex;
+    private int? _currentCorrectHex = null;
+    private int? _highlightedHex = null;
     private readonly int[] _correctHexes = new int[7];
-    private bool _moduleSolved, _areHexesRed, _areHexesFlashing, _canStagesContinue, _areHexesBlack, _trueModuleSolved;
+    private bool _areHexesRed;
+    private bool _areHexesFlashing;
+    private bool _canStagesContinue;
+    private bool _areHexesBlack;
+    private bool _trueModuleSolved;
     private static readonly string[] _soundNames = { "Flash1", "Flash2", "Flash3", "Flash4", "Flash5", "Flash6", "Flash7" };
     private static readonly string[] _ordinals = { "first", "second", "third", "fourth", "fifth", "sixth", "seventh" };
     private static readonly float[] _xPos = {
@@ -68,6 +77,7 @@ public class MayhemScript : MonoBehaviour
         0.045f, 0.015f, -0.015f, -0.045f,
         0.03f, 0f, -0.03f };
     private readonly HexColor[] _hexColors = new HexColor[19];
+    private Coroutine _pulseLightCoroutine;
 
     private void Start()
     {
@@ -169,7 +179,7 @@ public class MayhemScript : MonoBehaviour
         {
             if (_moduleSolved)
                 return;
-            _highlightedHex = 99;
+            _highlightedHex = null;
             SetHexColor(hex, _hexColors[hex]);
         };
     }
@@ -200,9 +210,15 @@ public class MayhemScript : MonoBehaviour
         yield return new WaitForSeconds(0.2f);
         for (int stage = 0; stage < _correctHexes.Length; stage++)
         {
-            Audio.PlaySoundAtTransform(_soundNames[stage], transform);
             _currentCorrectHex = _correctHexes[stage];
-            yield return new WaitForSeconds(1.75f);
+            Audio.PlaySoundAtTransform(_soundNames[stage], transform);
+            Pulse();
+            yield return new WaitForSeconds(0.5f);
+            Pulse();
+            yield return new WaitForSeconds(0.5f);
+            Pulse();
+            yield return new WaitForSeconds(0.75f);
+            Pulse();
             for (int hex = 0; hex < _hexColors.Length; hex++)
                 if (stage == 0 && hex != _startingHex)
                     SetHexColor(hex, HexColor.Blue);
@@ -216,11 +232,11 @@ public class MayhemScript : MonoBehaviour
                 SetHexColor(hex, HexColor.Blue);
             if (!_canStagesContinue)
             {
-                StartCoroutine(OpenHex(_currentCorrectHex, false));
-                StartCoroutine(MoveLight(_currentCorrectHex, false));
+                StartCoroutine(OpenHex(_currentCorrectHex.Value, false));
+                StartCoroutine(MoveLight(_currentCorrectHex.Value, false));
                 yield break;
             }
-            _currentCorrectHex = 99;
+            _currentCorrectHex = null;
             if (stage == 6)
             {
                 Audio.PlaySoundAtTransform("Solve", transform);
@@ -230,6 +246,28 @@ public class MayhemScript : MonoBehaviour
                 StartCoroutine(MoveLight(_correctHexes[6], true));
             }
         }
+    }
+
+    private void Pulse()
+    {
+        if (_pulseLightCoroutine != null)
+            StopCoroutine(_pulseLightCoroutine);
+        _pulseLightCoroutine = StartCoroutine(PulseLightAnimation());
+    }
+
+    private IEnumerator PulseLightAnimation()
+    {
+        var duration = 0.5f;
+        var elapsed = 0f;
+        while (elapsed < duration)
+        {
+            for (int i = 0; i < HexLights.Length; i++)
+                HexLights[i].intensity = Easing.OutSine(elapsed, 7f, 3f, duration);
+            yield return null;
+            elapsed += Time.deltaTime;
+        }
+        for (int i = 0; i < HexLights.Length; i++)
+            HexLights[i].intensity = 3f;
     }
 
     private IEnumerator OpenHex(int hex, bool isSolve)
@@ -275,16 +313,13 @@ public class MayhemScript : MonoBehaviour
             elapsedFirst += Time.deltaTime;
         }
         StatusLightObj.transform.localPosition = new Vector3(_xPos[pos], 0.05f, _zPos[pos]);
-        float durationSecond;
-        float waitTime;
-        float yPos;
+        float durationSecond = 0.2f;
+        float waitTime = 0.1f;
+        float yPos = 0.02f;
         var elapsedSecond = 0f;
         if (isSolve)
         {
-            waitTime = 0.1f;
-            durationSecond = 0.2f;
-            yPos = 0.02f;
-            _highlightedHex = -1;
+            _highlightedHex = null;
             for (int i = 0; i < _hexColors.Length; i++)
                 SetHexColor(i, HexColor.Blue);
             Module.HandlePass();
@@ -292,9 +327,9 @@ public class MayhemScript : MonoBehaviour
         }
         else
         {
-            waitTime = 0.4f;
-            durationSecond = 0.4f;
-            yPos = -0.04f;
+            waitTime += 0.3f;
+            durationSecond += 0.2f;
+            yPos -= 0.06f;
             Module.HandleStrike();
         }
         yield return new WaitForSeconds(waitTime);
@@ -322,18 +357,13 @@ public class MayhemScript : MonoBehaviour
 
     private void Update()
     {
-        if (_areHexesRed && _areHexesFlashing)
-            CheckForCorrectHover();
-    }
-
-    private void CheckForCorrectHover()
-    {
-        if (_currentCorrectHex != _highlightedHex && _canStagesContinue)
+        if (_areHexesRed && _areHexesFlashing && _canStagesContinue && _currentCorrectHex != _highlightedHex)
         {
             _canStagesContinue = false;
             Debug.LogFormat("[Mayhem #{0}] The correct hex was not remained highlighted for entire duration of hexes being red. Strike.", _moduleId);
         }
     }
+
 #pragma warning disable 0414
     private readonly string TwitchHelpMessage = "!{0} U DR wait UL D wait (etc.) [activate module, wait, step in those directions, wait, step again etc.]";
 #pragma warning restore 0414
@@ -405,8 +435,7 @@ public class MayhemScript : MonoBehaviour
     private IEnumerator RunTPSequence(IEnumerable<int?> elements, bool isSolver)
     {
         HexSelectables[_startingHex].OnInteract();
-
-        HexHighlight(_startingHex);
+        HexSelectables[_startingHex].OnHighlight();
         while (!_areHexesRed)
             yield return null;
         while (_areHexesRed)
@@ -427,14 +456,15 @@ public class MayhemScript : MonoBehaviour
                     yield return null;
                 if (mustAbort)
                 {
-                    HexHighlightEnd(prevHex);
+                    HexSelectables[prevHex].OnHighlightEnded();
                     yield break;
                 }
             }
             else
             {
-                HexHighlightEnd(prevHex);
-                HexHighlight(tr.Value);
+                HexSelectables[prevHex].OnHighlightEnded();
+                HexSelectables[tr.Value].OnHighlight();
+
                 yield return new WaitForSeconds(isSolver ? .05f : .025f);
                 prevHex = tr.Value;
             }
