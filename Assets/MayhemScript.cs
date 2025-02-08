@@ -112,7 +112,7 @@ public class MayhemScript : MonoBehaviour
         {
             HexSelectables[i].OnHighlight += HexHighlight(i);
             HexSelectables[i].OnHighlightEnded += HexHighlightEnd(i);
-            HexSelectables[i].OnInteract += HexPress;
+            HexSelectables[i].OnInteract += HexPress(i);
             HexSelectables[i].OnInteractEnded += HexRelease(i);
         }
 
@@ -207,14 +207,19 @@ public class MayhemScript : MonoBehaviour
         };
     }
 
-    private bool HexPress()
+    private KMSelectable.OnInteractHandler HexPress(int hex)
     {
-        if (_areHexesFlashing || _areHexesBlack || _moduleSolved)
+        return delegate ()
+        {
+            if (_areHexesFlashing || _areHexesBlack || _moduleSolved)
+                return false;
+            HexHighlight(hex);
+            _highlightedHex = hex;
+            _canStagesContinue = true;
+            StartCoroutine(FlashHexes());
+            _areHexesFlashing = true;
             return false;
-        _canStagesContinue = true;
-        StartCoroutine(FlashHexes());
-        _areHexesFlashing = true;
-        return false;
+        };
     }
 
     private Action HexRelease(int hex)
@@ -223,8 +228,8 @@ public class MayhemScript : MonoBehaviour
         {
             if (_moduleSolved)
                 return;
-            if (hex == _highlightedHex)
-                HexHighlight(hex);
+            HexHighlight(hex);
+            _highlightedHex = hex;
         };
     }
 
